@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caregiver - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .tabs {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 18px 30px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: #4a5568;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            background: #f7fafc;
+        }
+
+        .tab.active {
+            color: #3182ce;
+            border-bottom-color: #3182ce;
+            background: #ebf8ff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .calendar-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 1px;
+            background: #e2e8f0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .time-header {
+            background: #f7fafc;
+            padding: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #718096;
+            text-align: center;
+        }
+
+        .day-header {
+            background: #3182ce;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .time-label {
+            background: #f7fafc;
+            padding: 15px 10px;
+            font-size: 0.85rem;
+            color: #4a5568;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .time-slot {
+            background: white;
+            padding: 15px 10px;
+            min-height: 60px;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .time-slot:hover {
+            background: #ebf8ff;
+        }
+
+        .event {
+            position: absolute;
+            left: 2px;
+            right: 2px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .event.task {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .event.emotion {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3182ce;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-delete {
+            background: #fc8181;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #f56565;
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <a href="/recipient" class="tab">Recipient</a>
+        <a href="/caregiver" class="tab active">Caregiver</a>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>CareGiver Dashboard</h1>
+        </div>
+
+        <div class="calendar-container">
+            <div class="calendar" id="calendar">
+                <div class="time-header"></div>
+                <div class="day-header">Monday</div>
+                <div class="day-header">Tuesday</div>
+                <div class="day-header">Wednesday</div>
+                <div class="day-header">Thursday</div>
+                <div class="day-header">Friday</div>
+                <div class="day-header">Saturday</div>
+                <div class="day-header">Sunday</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">Add Task</div>
+            <div class="form-group">
+                <label>Task Name</label>
+                <input type="text" id="taskName" placeholder="Enter task name">
+            </div>
+            <div class="form-group">
+                <label>Start Time</label>
+                <input type="datetime-local" id="taskStart">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-delete" id="deleteBtn" style="display: none;" onclick="deleteTask()">Delete</button>
+                <button class="btn btn-primary" onclick="saveTask()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTask = null;
+        const hours = Array.from({length: 24}, (_, i) => i);
+
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            
+            hours.forEach(hour => {
+                const timeLabel = document.createElement('div');
+                timeLabel.className = 'time-label';
+                timeLabel.textContent = `${hour.toString().padStart(2, '0')}:00`;
+                calendar.appendChild(timeLabel);
+
+                for (let day = 0; day < 7; day++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'time-slot';
+                    slot.dataset.hour = hour;
+                    slot.dataset.day = day;
+                    slot.onclick = () => openModal(hour, day);
+                    calendar.appendChild(slot);
+                }
+            });
+        }
+
+        function openModal(hour, day, task = null) {
+            const modal = document.getElementById('taskModal');
+            const title = document.getElementById('modalTitle');
+            const deleteBtn = document.getElementById('deleteBtn');
+            
+            if (task) {
+                title.textContent = 'Edit Task';
+                document.getElementById('taskName').value = task.title;
+                document.getElementById('taskStart').value = task.start;
+                deleteBtn.style.display = 'block';
+                currentTask = task;
+            } else {
+                title.textContent = 'Add Task';
+                const now = new Date();
+                const startDate = new Date(now);
+                startDate.setDate(now.getDate() - now.getDay() + day);
+                startDate.setHours(hour, 0, 0, 0);
+                
+                document.getElementById('taskName').value = '';
+                document.getElementById('taskStart').value = startDate.toISOString().slice(0, 16);
+                deleteBtn.style.display = 'none';
+                currentTask = null;
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('taskModal').classList.remove('active');
+        }
+
+        async function saveTask() {
+            const name = document.getElementById('taskName').value;
+            const start = document.getElementById('taskStart').value;
+            
+            if (!name || !start) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const startDate = new Date(start);
+            const endDate = new Date(startDate.getTime() + 30 * 60000);
+
+            try {
+                await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: name,
+                        start: startDate.toISOString(),
+                        end: endDate.toISOString()
+                    })
+                });
+
+                closeModal();
+                loadEvents();
+            } catch (error) {
+                console.error('Error saving task:', error);
+            }
+        }
+
+        async function deleteTask() {
+            if (!currentTask) return;
+
+            try {
+                await fetch(`/api/tasks/${currentTask.id}`, { method: 'DELETE' });
+                closeModal();
+                loadEvents();
+            } catch (error) {
+                console.error('Error deleting task:', error);
+            }
+        }
+
+        async function loadEvents() {
+            try {
+                const [tasksRes, emotionsRes] = await Promise.all([
+                    fetch('/api/tasks'),
+                    fetch('/api/emotions')
+                ]);
+
+                const tasks = await tasksRes.json();
+                const emotions = await emotionsRes.json();
+
+                document.querySelectorAll('.event').forEach(e => e.remove());
+
+                const now = new Date();
+                const weekStart = new Date(now);
+                weekStart.setDate(now.getDate() - now.getDay());
+                weekStart.setHours(0, 0, 0, 0);
+
+                tasks.forEach(task => {
+                    renderEvent(task, 'task');
+                });
+
+                emotions.forEach(emotion => {
+                    const start = new Date(emotion.timestamp);
+                    const end = new Date(start.getTime() + 30 * 60000);
+                    renderEvent({
+                        title: emotion.emoji,
+                        start: start.toISOString(),
+                        end: end.toISOString(),
+                        id: emotion.id
+                    }, 'emotion');
+                });
+            } catch (error) {
+                console.error('Error loading events:', error);
+            }
+        }
+
+        function renderEvent(event, type) {
+            const start = new Date(event.start);
+            const now = new Date();
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - now.getDay());
+            weekStart.setHours(0, 0, 0, 0);
+
+            const dayDiff = Math.floor((start - weekStart) / (1000 * 60 * 60 * 24));
+            
+            if (dayDiff < 0 || dayDiff > 6) return;
+
+            const hour = start.getHours();
+            const slot = document.querySelector(`[data-hour="${hour}"][data-day="${dayDiff}"]`);
+            
+            if (slot) {
+                const eventEl = document.createElement('div');
+                eventEl.className = `event ${type}`;
+                eventEl.textContent = event.title;
+                
+                if (type === 'task') {
+                    eventEl.onclick = (e) => {
+                        e.stopPropagation();
+                        openModal(hour, dayDiff, event);
+                    };
+                }
+                
+                slot.appendChild(eventEl);
+            }
+        }
+
+        renderCalendar();
+        loadEvents();
+        setInterval(loadEvents, 5000);
+
+        window.onclick = (e) => {
+            const modal = document.getElementById('taskModal');
+            if (e.target === modal) closeModal();
+        };
+    </script>
+</body>
+</html>

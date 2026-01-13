@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareConnect - Emotion Tracking System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 60px 50px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 1.1rem;
+            margin-bottom: 50px;
+        }
+
+        .role-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .role-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .role-card.caregiver {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .role-card.caregiver:hover {
+            box-shadow: 0 8px 25px rgba(240, 147, 251, 0.6);
+        }
+
+        .role-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .role-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .role-description {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .footer {
+            margin-top: 40px;
+            color: #a0aec0;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 30px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CareConnect</h1>
+        <p class="subtitle">Choose your role to continue</p>
+        
+        <div class="role-selector">
+            <a href="/recipient" class="role-card recipient">
+                <div class="role-icon">😊</div>
+                <div class="role-title">I'm a Recipient</div>
+                <div class="role-description">Share how you're feeling</div>
+            </a>
+            
+            <a href="/caregiver" class="role-card caregiver">
+                <div class="role-icon">👨‍⚕️</div>
+                <div class="role-title">I'm a Caregiver</div>
+                <div class="role-description">Monitor and manage care</div>
+            </a>
+        </div>
+
+        <div class="footer">
+            © 2026 CareConnect. Connecting hearts through understanding.
+        </div>
+    </div>
+</body>
+</html>
+
+
