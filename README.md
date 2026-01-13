@@ -2,11 +2,11 @@
 
 A web-based emotion tracking and caregiving coordination platform that bridges the communication gap between care recipients and their caregivers through intuitive emotion sharing and calendar management.
 
-## 🎯 Project Overview
+## Project Overview
 
 CareConnect enables care recipients to express their emotional state through simple emoji selections, which are automatically shared with their caregivers via an integrated calendar system. This allows caregivers to monitor emotional wellbeing alongside daily tasks without requiring direct verbal communication from the recipient.
 
-## ✨ Key Features
+## Key Features
 
 ### For Recipients
 - **Simple Emotion Selection**: Choose from 5 emoji options to express current feelings
@@ -30,19 +30,19 @@ CareConnect enables care recipients to express their emotional state through sim
 - **Role Selection**: Professional home page for initial role selection
 - **Persistent Access**: Easy navigation between all pages
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Backend**: Flask (Python)
 - **Frontend**: Vanilla HTML, CSS, JavaScript
 - **Data Storage**: In-memory (can be extended to database)
 - **Architecture**: RESTful API design
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Python 3.7 or higher
 - pip (Python package manager)
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 ### 1. Clone or Download the Project
 
@@ -84,7 +84,7 @@ Open your web browser and navigate to:
 http://localhost:5000
 ```
 
-## 💻 Usage Guide
+## Usage Guide
 
 ### Getting Started
 
@@ -107,7 +107,7 @@ http://localhost:5000
 
 Use the navigation tabs at the top of any page to switch between Recipient and Caregiver views instantly.
 
-## 🔧 API Endpoints
+## API Endpoints
 
 ### Emotions
 
@@ -135,7 +135,7 @@ Use the navigation tabs at the top of any page to switch between Recipient and C
 - Delete a specific task
 - Response: Success confirmation
 
-## 🎨 Design Philosophy
+## Design Philosophy
 
 - **Minimalist Interface**: Reduces cognitive load for recipients who may be experiencing distress
 - **Automatic Synchronization**: 5-second auto-refresh ensures caregivers receive timely updates
@@ -143,14 +143,14 @@ Use the navigation tabs at the top of any page to switch between Recipient and C
 - **Accessibility-First**: Large touch targets and clear visual hierarchy
 - **Professional Aesthetics**: Modern gradient designs with smooth transitions
 
-## 🔒 Current Limitations
+## Current Limitations
 
 - **Data Persistence**: Uses in-memory storage; data resets on server restart
 - **Single User**: Designed for one recipient-caregiver pair
 - **No Authentication**: No user login system implemented
 - **Same Network**: Best used on the same local network
 
-## 🚧 Future Enhancements
+## Future Enhancements
 
 - Database integration (PostgreSQL/SQLite) for persistent storage
 - User authentication and multi-user support
@@ -161,7 +161,7 @@ Use the navigation tabs at the top of any page to switch between Recipient and C
 - Customizable emotion options
 - Recurring task support
 
-## 🤝 Contributing
+## Contributing
 
 This is a prototype project. To contribute:
 
@@ -171,17 +171,17 @@ This is a prototype project. To contribute:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is open source and available under the MIT License.
 
-## 👥 Support
+## Support
 
 For questions, issues, or feedback:
 - Open an issue in the repository
 - Contact the development team
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Designed for caregivers and care recipients who need better emotional communication tools
 - Inspired by the need for non-verbal emotional expression in caregiving relationships
