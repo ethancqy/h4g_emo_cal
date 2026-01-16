@@ -70,6 +70,7 @@
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow-x: auto;
         }
 
         .calendar {
@@ -78,6 +79,7 @@
             gap: 1px;
             background: #e2e8f0;
             border: 1px solid #e2e8f0;
+            min-width: 900px;
         }
 
         .time-header {
@@ -108,21 +110,40 @@
 
         .time-slot {
             background: white;
-            padding: 15px 10px;
+            padding: 0;
             min-height: 60px;
             cursor: pointer;
             transition: background 0.2s;
             position: relative;
+            user-select: none;
         }
 
         .time-slot:hover {
             background: #ebf8ff;
         }
 
-        .event {
+        .time-slot.selecting {
+            background: #bee3f8;
+        }
+
+        .time-slot.selected {
+            background: #90cdf4;
+        }
+
+        .event-container {
             position: absolute;
-            left: 2px;
-            right: 2px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            gap: 2px;
+            padding: 2px;
+            z-index: 10;
+        }
+
+        .event {
+            flex: 1;
             padding: 8px;
             border-radius: 6px;
             font-size: 0.85rem;
@@ -131,6 +152,10 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            z-index: 11;
+            pointer-events: auto;
         }
 
         .event.task {
@@ -141,6 +166,13 @@
         .event.emotion {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
+        }
+
+        .event.multi-slot {
+            position: absolute;
+            left: 2px;
+            right: 2px;
+            padding: 8px;
         }
 
         .modal {
@@ -243,6 +275,15 @@
         .btn-delete:hover {
             background: #f56565;
         }
+
+        .selection-preview {
+            position: fixed;
+            background: rgba(49, 130, 206, 0.2);
+            border: 2px dashed #3182ce;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -253,7 +294,7 @@
 
     <div class="container">
         <div class="header">
-            <h1>CareGiver Dashboard</h1>
+            <h1>Caregiver Dashboard</h1>
         </div>
 
         <div class="calendar-container">
@@ -270,6 +311,8 @@
         </div>
     </div>
 
+    <div class="selection-preview" id="selectionPreview"></div>
+
     <div class="modal" id="taskModal">
         <div class="modal-content">
             <div class="modal-header" id="modalTitle">Add Task</div>
@@ -281,6 +324,10 @@
                 <label>Start Time</label>
                 <input type="datetime-local" id="taskStart">
             </div>
+            <div class="form-group">
+                <label>End Time</label>
+                <input type="datetime-local" id="taskEnd">
+            </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                 <button class="btn btn-delete" id="deleteBtn" style="display: none;" onclick="deleteTask()">Delete</button>
@@ -289,8 +336,36 @@
         </div>
     </div>
 
+    <div class="modal" id="emotionModal">
+        <div class="modal-content">
+            <div class="modal-header" id="emotionModalTitle">Emotion Details</div>
+            <div style="padding: 20px; text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 15px;" id="emotionEmoji"></div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #4a5568; display: block; margin-bottom: 8px;">Face Recognition Emotion:</label>
+                    <div style="font-size: 1.1rem; color: #2d3748; padding: 10px; background: #f7fafc; border-radius: 8px;" id="emotionText"></div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #4a5568; display: block; margin-bottom: 8px;">Time:</label>
+                    <div style="font-size: 0.95rem; color: #718096;" id="emotionTime"></div>
+                </div>
+                <!-- Future: Add biometric data section here -->
+                <!-- <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #4a5568; display: block; margin-bottom: 8px;">Biometrics:</label>
+                    <div id="biometricData" style="background: #f7fafc; border-radius: 8px; padding: 10px;"></div>
+                </div> -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeEmotionModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentTask = null;
+        let isDragging = false;
+        let startSlot = null;
+        let selectedSlots = [];
         const hours = Array.from({length: 24}, (_, i) => i);
 
         function renderCalendar() {
@@ -307,13 +382,75 @@
                     slot.className = 'time-slot';
                     slot.dataset.hour = hour;
                     slot.dataset.day = day;
-                    slot.onclick = () => openModal(hour, day);
+                    
+                    slot.addEventListener('mousedown', handleMouseDown);
+                    slot.addEventListener('mouseenter', handleMouseEnter);
+                    slot.addEventListener('mouseup', handleMouseUp);
+                    
                     calendar.appendChild(slot);
                 }
             });
+
+            document.addEventListener('mouseup', handleMouseUp);
         }
 
-        function openModal(hour, day, task = null) {
+        function handleMouseDown(e) {
+            if (e.target.classList.contains('event')) return;
+            
+            isDragging = true;
+            startSlot = e.currentTarget;
+            selectedSlots = [startSlot];
+            startSlot.classList.add('selected');
+        }
+
+        function handleMouseEnter(e) {
+            if (!isDragging) return;
+            if (e.currentTarget.classList.contains('event')) return;
+
+            const currentSlot = e.currentTarget;
+            const startDay = parseInt(startSlot.dataset.day);
+            const startHour = parseInt(startSlot.dataset.hour);
+            const currentDay = parseInt(currentSlot.dataset.day);
+            const currentHour = parseInt(currentSlot.dataset.hour);
+
+            if (startDay !== currentDay) return;
+
+            selectedSlots.forEach(slot => slot.classList.remove('selected', 'selecting'));
+            selectedSlots = [];
+
+            const minHour = Math.min(startHour, currentHour);
+            const maxHour = Math.max(startHour, currentHour);
+
+            for (let h = minHour; h <= maxHour; h++) {
+                const slot = document.querySelector(`[data-hour="${h}"][data-day="${startDay}"]`);
+                if (slot) {
+                    slot.classList.add('selecting');
+                    selectedSlots.push(slot);
+                }
+            }
+        }
+
+        function handleMouseUp() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+
+            if (selectedSlots.length > 0) {
+                const firstSlot = selectedSlots[0];
+                const lastSlot = selectedSlots[selectedSlots.length - 1];
+                const day = parseInt(firstSlot.dataset.day);
+                const startHour = parseInt(firstSlot.dataset.hour);
+                const endHour = parseInt(lastSlot.dataset.hour) + 1;
+
+                openModal(startHour, endHour, day);
+            }
+
+            selectedSlots.forEach(slot => slot.classList.remove('selected', 'selecting'));
+            selectedSlots = [];
+            startSlot = null;
+        }
+
+        function openModal(startHour, endHour, day, task = null) {
             const modal = document.getElementById('taskModal');
             const title = document.getElementById('modalTitle');
             const deleteBtn = document.getElementById('deleteBtn');
@@ -321,7 +458,8 @@
             if (task) {
                 title.textContent = 'Edit Task';
                 document.getElementById('taskName').value = task.title;
-                document.getElementById('taskStart').value = task.start;
+                document.getElementById('taskStart').value = new Date(task.start).toISOString().slice(0, 16);
+                document.getElementById('taskEnd').value = new Date(task.end).toISOString().slice(0, 16);
                 deleteBtn.style.display = 'block';
                 currentTask = task;
             } else {
@@ -329,10 +467,14 @@
                 const now = new Date();
                 const startDate = new Date(now);
                 startDate.setDate(now.getDate() - now.getDay() + day);
-                startDate.setHours(hour, 0, 0, 0);
+                startDate.setHours(startHour, 0, 0, 0);
                 
+                const endDate = new Date(startDate);
+                endDate.setHours(endHour, 0, 0, 0);
+
                 document.getElementById('taskName').value = '';
                 document.getElementById('taskStart').value = startDate.toISOString().slice(0, 16);
+                document.getElementById('taskEnd').value = endDate.toISOString().slice(0, 16);
                 deleteBtn.style.display = 'none';
                 currentTask = null;
             }
@@ -344,17 +486,44 @@
             document.getElementById('taskModal').classList.remove('active');
         }
 
+        function closeEmotionModal() {
+            document.getElementById('emotionModal').classList.remove('active');
+        }
+
+        function openEmotionModal(emotion) {
+            const modal = document.getElementById('emotionModal');
+            const start = new Date(emotion.timestamp);
+            const timeStr = start.toLocaleString('en-US', { 
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+
+            document.getElementById('emotionEmoji').textContent = emotion.title;
+            document.getElementById('emotionText').textContent = emotion.dominant_emotion || 'Unknown';
+            document.getElementById('emotionTime').textContent = timeStr;
+            
+            modal.classList.add('active');
+        }
+
         async function saveTask() {
             const name = document.getElementById('taskName').value;
             const start = document.getElementById('taskStart').value;
+            const end = document.getElementById('taskEnd').value;
             
-            if (!name || !start) {
+            if (!name || !start || !end) {
                 alert('Please fill in all fields');
                 return;
             }
 
             const startDate = new Date(start);
-            const endDate = new Date(startDate.getTime() + 30 * 60000);
+            const endDate = new Date(end);
+
+            if (endDate <= startDate) {
+                alert('End time must be after start time');
+                return;
+            }
 
             try {
                 await fetch('/api/tasks', {
@@ -388,42 +557,44 @@
 
         async function loadEvents() {
             try {
-                const [tasksRes, emotionsRes] = await Promise.all([
-                    fetch('/api/tasks'),
-                    fetch('/api/emotions')
-                ]);
+                const tasksRes = await fetch('/api/tasks');
+                const emotionsRes = await fetch('/api/emotions');
 
                 const tasks = await tasksRes.json();
                 const emotions = await emotionsRes.json();
 
+                document.querySelectorAll('.event-container').forEach(e => e.remove());
                 document.querySelectorAll('.event').forEach(e => e.remove());
 
-                const now = new Date();
-                const weekStart = new Date(now);
-                weekStart.setDate(now.getDate() - now.getDay());
-                weekStart.setHours(0, 0, 0, 0);
+                const allEvents = [
+                    ...tasks.map(t => ({...t, type: 'task'})),
+                    ...emotions.map(e => {
+                        const start = new Date(e.timestamp);
+                        const end = new Date(start.getTime() + 30 * 60000);
+                        return {
+                            title: e.emoji,
+                            start: start.toISOString(),
+                            end: end.toISOString(),
+                            id: e.id,
+                            type: 'emotion',
+                            emoji: e.emoji,
+                            dominant_emotion: e.dominant_emotion,
+                            timestamp: e.timestamp
+                        };
+                    })
+                ];
 
-                tasks.forEach(task => {
-                    renderEvent(task, 'task');
-                });
-
-                emotions.forEach(emotion => {
-                    const start = new Date(emotion.timestamp);
-                    const end = new Date(start.getTime() + 30 * 60000);
-                    renderEvent({
-                        title: emotion.emoji,
-                        start: start.toISOString(),
-                        end: end.toISOString(),
-                        id: emotion.id
-                    }, 'emotion');
+                allEvents.forEach(event => {
+                    renderEvent(event);
                 });
             } catch (error) {
                 console.error('Error loading events:', error);
             }
         }
 
-        function renderEvent(event, type) {
+        function renderEvent(event) {
             const start = new Date(event.start);
+            const end = new Date(event.end);
             const now = new Date();
             const weekStart = new Date(now);
             weekStart.setDate(now.getDate() - now.getDay());
@@ -433,22 +604,94 @@
             
             if (dayDiff < 0 || dayDiff > 6) return;
 
-            const hour = start.getHours();
-            const slot = document.querySelector(`[data-hour="${hour}"][data-day="${dayDiff}"]`);
+            const startHour = start.getHours();
+            const endHour = end.getHours();
+            const startMinutes = start.getMinutes();
+            const endMinutes = end.getMinutes();
+
+            const durationHours = (end - start) / (1000 * 60 * 60);
             
-            if (slot) {
-                const eventEl = document.createElement('div');
-                eventEl.className = `event ${type}`;
-                eventEl.textContent = event.title;
-                
-                if (type === 'task') {
-                    eventEl.onclick = (e) => {
-                        e.stopPropagation();
-                        openModal(hour, dayDiff, event);
-                    };
+            if (durationHours <= 1) {
+                const slot = document.querySelector(`[data-hour="${startHour}"][data-day="${dayDiff}"]`);
+                if (slot) {
+                    let container = slot.querySelector('.event-container');
+                    if (!container) {
+                        container = document.createElement('div');
+                        container.className = 'event-container';
+                        slot.appendChild(container);
+                    }
+
+                    const eventEl = document.createElement('div');
+                    eventEl.className = `event ${event.type}`;
+                    eventEl.textContent = event.title;
+                    
+                    const topPercent = (startMinutes / 60) * 100;
+                    const heightPercent = ((endMinutes - startMinutes) / 60) * 100 || ((60 - startMinutes) / 60) * 100;
+                    
+                    eventEl.style.position = 'absolute';
+                    eventEl.style.top = topPercent + '%';
+                    eventEl.style.height = heightPercent + '%';
+                    eventEl.style.left = '2px';
+                    eventEl.style.right = '2px';
+                    
+                    if (event.type === 'task') {
+                        eventEl.onclick = (e) => {
+                            e.stopPropagation();
+                            openModal(startHour, endHour, dayDiff, event);
+                        };
+                    } else if (event.type === 'emotion') {
+                        eventEl.onclick = (e) => {
+                            e.stopPropagation();
+                            openEmotionModal(event);
+                        };
+                    }
+                    
+                    container.appendChild(eventEl);
                 }
-                
-                slot.appendChild(eventEl);
+            } else {
+                for (let h = startHour; h < endHour; h++) {
+                    const slot = document.querySelector(`[data-hour="${h}"][data-day="${dayDiff}"]`);
+                    if (slot) {
+                        let container = slot.querySelector('.event-container');
+                        if (!container) {
+                            container = document.createElement('div');
+                            container.className = 'event-container';
+                            slot.appendChild(container);
+                        }
+
+                        const eventEl = document.createElement('div');
+                        eventEl.className = `event ${event.type}`;
+                        
+                        if (h === startHour) {
+                            eventEl.textContent = event.title;
+                        }
+                        
+                        const topPercent = (h === startHour) ? (startMinutes / 60) * 100 : 0;
+                        const heightPercent = (h === endHour - 1 && endMinutes > 0) 
+                            ? (endMinutes / 60) * 100 
+                            : (h === startHour) ? ((60 - startMinutes) / 60) * 100 : 100;
+                        
+                        eventEl.style.position = 'absolute';
+                        eventEl.style.top = topPercent + '%';
+                        eventEl.style.height = heightPercent + '%';
+                        eventEl.style.left = '2px';
+                        eventEl.style.right = '2px';
+                        
+                        if (event.type === 'task') {
+                            eventEl.onclick = (e) => {
+                                e.stopPropagation();
+                                openModal(startHour, endHour, dayDiff, event);
+                            };
+                        } else if (event.type === 'emotion') {
+                            eventEl.onclick = (e) => {
+                                e.stopPropagation();
+                                openEmotionModal(event);
+                            };
+                        }
+                        
+                        container.appendChild(eventEl);
+                    }
+                }
             }
         }
 
@@ -457,9 +700,132 @@
         setInterval(loadEvents, 5000);
 
         window.onclick = (e) => {
-            const modal = document.getElementById('taskModal');
-            if (e.target === modal) closeModal();
+            const taskModal = document.getElementById('taskModal');
+            const emotionModal = document.getElementById('emotionModal');
+            if (e.target === taskModal) closeModal();
+            if (e.target === emotionModal) closeEmotionModal();
         };
+
+        // ============= VIDEO CAPTURE & EMOTION RECOGNITION =============
+        let video = null;
+        let canvas = null;
+        let recognitionInterval = null;
+        let isCapturing = false;
+
+        async function startEmotionMonitoring() {
+            try {
+                // Request camera access
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: false
+                });
+
+                // Create video element if not exists
+                if (!video) {
+                    video = document.createElement('video');
+                    video.width = 640;
+                    video.height = 480;
+                    video.autoplay = true;
+                    video.muted = true;
+                    video.style.display = 'none';
+                    document.body.appendChild(video);
+
+                    canvas = document.createElement('canvas');
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    canvas.style.display = 'none';
+                    document.body.appendChild(canvas);
+                }
+
+                video.srcObject = stream;
+                isCapturing = true;
+
+                // Send frames to server every 500ms
+                recognitionInterval = setInterval(async () => {
+                    if (!isCapturing || !video.readyState === video.HAVE_ENOUGH_DATA) return;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(async (blob) => {
+                        const reader = new FileReader();
+                        reader.onload = async (e) => {
+                            try {
+                                const base64Image = e.target.result.split(',')[1];
+                                const response = await fetch('/recognize', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ image: base64Image })
+                                });
+
+                                const result = await response.json();
+                                if (result.success) {
+                                    // Update UI with emotion data
+                                    console.log('Emotion:', result.dominant_emotion, 'Confidence:', result.confidence);
+                                    updateEmotionDisplay(result);
+                                }
+                            } catch (error) {
+                                console.error('Recognition error:', error);
+                            }
+                        };
+                        reader.readAsDataURL(blob);
+                    }, 'image/jpeg', 0.8);
+                }, 500);
+
+                console.log('Emotion monitoring started');
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Unable to access camera. Please ensure you have granted camera permissions.');
+            }
+        }
+
+        function stopEmotionMonitoring() {
+            if (recognitionInterval) {
+                clearInterval(recognitionInterval);
+                recognitionInterval = null;
+            }
+
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+
+            isCapturing = false;
+            console.log('Emotion monitoring stopped');
+        }
+
+        function updateEmotionDisplay(emotionData) {
+            // This can be customized to update your UI
+            // For example, display emotion in a status element
+            const status = document.querySelector('.emotion-status') || document.createElement('div');
+            if (!document.querySelector('.emotion-status')) {
+                status.className = 'emotion-status';
+                status.style.cssText = 'position: fixed; top: 20px; right: 20px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000;';
+                document.body.appendChild(status);
+            }
+
+            status.innerHTML = `
+                <strong>Current Emotion:</strong> ${emotionData.dominant_emotion}<br/>
+                <strong>Confidence:</strong> ${(emotionData.confidence * 100).toFixed(0)}%
+            `;
+        }
+
+        // Optional: Add button to UI to start/stop monitoring
+        // Uncomment to add to page
+        // document.addEventListener('DOMContentLoaded', () => {
+        //     const btn = document.createElement('button');
+        //     btn.textContent = 'Start Emotion Monitoring';
+        //     btn.onclick = () => {
+        //         if (isCapturing) {
+        //             stopEmotionMonitoring();
+        //             btn.textContent = 'Start Emotion Monitoring';
+        //         } else {
+        //             startEmotionMonitoring();
+        //             btn.textContent = 'Stop Emotion Monitoring';
+        //         }
+        //     };
+        //     document.body.appendChild(btn);
+        // });
     </script>
 </body>
 </html>
