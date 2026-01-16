@@ -168,6 +168,81 @@
             padding: 30px;
             text-align: center;
         }
+
+        .video-container {
+            margin: 30px 0;
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .video-container.active {
+            display: block;
+        }
+
+        #cameraVideo {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #emotionCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #captureCanvas {
+            display: none;
+        }
+
+        .camera-status {
+            margin: 15px 0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            display: none;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .camera-status.active {
+            display: inline-block;
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .camera-status.error {
+            display: block;
+            background: #fed7d7;
+            color: #742a2a;
+            width: 100%;
+        }
+
+        .emotion-display {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #4a5568;
+        }
+
+        .emotion-display strong {
+            color: #2d3748;
+        }
     </style>
 </head>
 <body>
@@ -179,6 +254,19 @@
     <div class="container">
         <div class="card">
             <h1>How are you feeling now?</h1>
+
+            <div class="camera-status" id="cameraStatus">📷 Camera is on</div>
+            <div class="camera-status error" id="cameraError"></div>
+
+            <div class="video-container" id="videoContainer">
+                <video id="cameraVideo" autoplay playsinline></video>
+                <canvas id="emotionCanvas"></canvas>
+            </div>
+            <canvas id="captureCanvas"></canvas>
+
+            <div class="emotion-display">
+                <div>Detected emotion from camera: <strong id="emotionLabel">Analyzing...</strong></div>
+            </div>
             
             <div class="emoji-selector">
                 <div class="emoji-btn" data-emoji="😊" title="Happy">😊</div>
@@ -186,6 +274,8 @@
                 <div class="emoji-btn" data-emoji="😰" title="Anxious">😰</div>
                 <div class="emoji-btn" data-emoji="😡" title="Angry">😡</div>
                 <div class="emoji-btn" data-emoji="😴" title="Tired">😴</div>
+                <div class="emoji-btn" data-emoji="🍆" title="Horned">🍆</div>
+                <div class="emoji-btn" data-emoji="💩" title="Shitty">💩</div>
             </div>
 
             <button class="submit-btn" id="submitBtn" disabled>Submit Feeling</button>
@@ -201,11 +291,211 @@
 
     <script>
         let selectedEmoji = null;
+        let emotionFrames = []; // Store emotion data from frames
+        let mediaStream = null;
+        let frameCapturingInterval = null;
+        let currentDominantEmotion = 'unknown';
 
         const emojiBtns = document.querySelectorAll('.emoji-btn');
         const submitBtn = document.getElementById('submitBtn');
         const historyList = document.getElementById('historyList');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const captureCanvas = document.getElementById('captureCanvas');
+        const emotionCanvas = document.getElementById('emotionCanvas');
+        const videoContainer = document.getElementById('videoContainer');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const cameraError = document.getElementById('cameraError');
+        const emotionLabel = document.getElementById('emotionLabel');
 
+        let lastBbox = null;
+        let lastEmotion = null;
+        let lastConfidence = 0;
+
+        // Initialize camera when page loads
+        async function initializeCamera() {
+            try {
+                cameraError.textContent = '';
+                
+                // Request camera access
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' }
+                });
+
+                // Set up video element
+                cameraVideo.srcObject = mediaStream;
+                videoContainer.classList.add('active');
+                cameraStatus.classList.add('active');
+
+                // Wait for video to load before starting frame capture
+                cameraVideo.onloadedmetadata = () => {
+                    // Set capture canvas size to match video
+                    captureCanvas.width = cameraVideo.videoWidth;
+                    captureCanvas.height = cameraVideo.videoHeight;
+                    
+                    // Set emotion canvas size and position
+                    emotionCanvas.width = cameraVideo.videoWidth;
+                    emotionCanvas.height = cameraVideo.videoHeight;
+                    
+                    // Start capturing frames every 300ms
+                    startFrameCapturing();
+                    
+                    // Start drawing loop for overlay
+                    drawOverlayLoop();
+                };
+
+            } catch (error) {
+                console.error('Camera access error:', error);
+                cameraError.textContent = '📷 Camera access denied. Please enable camera permissions.';
+                cameraError.classList.add('error');
+                videoContainer.classList.remove('active');
+                cameraStatus.classList.remove('active');
+            }
+        }
+
+        // Capture frame and send to /recognize endpoint
+        async function captureAndSendFrame() {
+            if (!cameraVideo || !captureCanvas) return;
+
+            try {
+                const ctx = captureCanvas.getContext('2d');
+                // Draw current video frame to canvas
+                ctx.drawImage(cameraVideo, 0, 0, captureCanvas.width, captureCanvas.height);
+
+                // Convert canvas to base64 JPEG
+                const imageData = captureCanvas.toDataURL('image/jpeg', 0.8);
+
+                // Send to /recognize endpoint
+                const response = await fetch('/recognize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: imageData
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Store emotion data
+                        emotionFrames.push({
+                            timestamp: Date.now(),
+                            emotions: result.emotions,
+                            dominant_emotion: result.dominant_emotion,
+                            confidence: result.confidence
+                        });
+
+                        // Keep only last 30 frames
+                        if (emotionFrames.length > 30) {
+                            emotionFrames.shift();
+                        }
+
+                        // Update bounding box and emotion for overlay
+                        if (result.bbox) {
+                            lastBbox = result.bbox;
+                        }
+                        lastEmotion = result.dominant_emotion;
+                        lastConfidence = result.confidence;
+
+                        // Update UI with current dominant emotion
+                        if (result.dominant_emotion) {
+                            emotionLabel.textContent = `${result.dominant_emotion} (${(result.confidence * 100).toFixed(0)}%)`;
+                        }
+
+                        // Store smoothed dominant emotion for submission
+                        if (result.dominant_emotion_smoothed) {
+                            currentDominantEmotion = result.dominant_emotion_smoothed;
+                        } else {
+                            currentDominantEmotion = result.dominant_emotion;
+                        }
+                    }
+                } else {
+                    console.error('Recognize API error:', response.status);
+                }
+            } catch (error) {
+                console.error('Frame capture error:', error);
+            }
+        }
+
+        // Draw bounding box and emotion on overlay canvas
+        function drawOverlay() {
+            if (!emotionCanvas) return;
+
+            const ctx = emotionCanvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, emotionCanvas.width, emotionCanvas.height);
+
+            // Draw bounding box if available
+            if (lastBbox) {
+                const bbox = lastBbox;
+                const x = bbox.x;
+                const y = bbox.y;
+                const w = bbox.w;
+                const h = bbox.h;
+
+                // Draw rectangle
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x, y, w, h);
+
+                // Draw emotion label
+                if (lastEmotion) {
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillStyle = '#00ff00';
+                    ctx.textBaseline = 'bottom';
+                    
+                    const label = `${lastEmotion} (${(lastConfidence * 100).toFixed(0)}%)`;
+                    const textWidth = ctx.measureText(label).width;
+                    const padding = 8;
+                    
+                    // Draw background for text
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(x, y - 30, textWidth + padding * 2, 28);
+                    
+                    // Draw text
+                    ctx.fillStyle = '#00ff00';
+                    ctx.fillText(label, x + padding, y - 8);
+                }
+            }
+        }
+
+        // Animation loop for overlay
+        function drawOverlayLoop() {
+            drawOverlay();
+            if (frameCapturingInterval) {
+                requestAnimationFrame(drawOverlayLoop);
+            }
+        }
+
+        // Start capturing frames
+        function startFrameCapturing() {
+            if (frameCapturingInterval) {
+                clearInterval(frameCapturingInterval);
+            }
+            frameCapturingInterval = setInterval(captureAndSendFrame, 300);
+        }
+
+        // Stop capturing frames and close camera
+        function stopCamera() {
+            if (frameCapturingInterval) {
+                clearInterval(frameCapturingInterval);
+                frameCapturingInterval = null;
+            }
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+
+            videoContainer.classList.remove('active');
+            cameraStatus.classList.remove('active');
+            emotionLabel.textContent = 'Camera stopped';
+        }
+
+        // Emoji button handlers
         emojiBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 emojiBtns.forEach(b => b.classList.remove('selected'));
@@ -215,31 +505,69 @@
             });
         });
 
+        // Submit button handler
         submitBtn.addEventListener('click', async () => {
             if (!selectedEmoji) return;
 
             try {
+                // Stop camera and frame capturing
+                stopCamera();
+
+                // Get the average of last 30 frames' emotions
+                let averagedEmotion = currentDominantEmotion;
+                if (emotionFrames.length > 0) {
+                    const emotionCounts = {};
+                    emotionFrames.forEach(frame => {
+                        const emotion = frame.dominant_emotion;
+                        emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+                    });
+                    averagedEmotion = Object.keys(emotionCounts).reduce((a, b) => 
+                        emotionCounts[a] > emotionCounts[b] ? a : b
+                    );
+                }
+
+                // Submit emotion with detected emotion data
                 const response = await fetch('/api/emotions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ emoji: selectedEmoji })
+                    body: JSON.stringify({
+                        emoji: selectedEmoji,
+                        dominant_emotion: averagedEmotion,
+                        emotion_frames: emotionFrames
+                    })
                 });
 
+                if (!response.ok) throw new Error('Failed to submit emotion');
+
                 const data = await response.json();
-                
+                console.log('Emotion submitted:', data);
+
+                // Clear selections
                 emojiBtns.forEach(b => b.classList.remove('selected'));
                 selectedEmoji = null;
                 submitBtn.disabled = true;
-                
+                emotionFrames = [];
+                currentDominantEmotion = 'unknown';
+
+                // Reload history
                 loadHistory();
+
+                // Restart camera for next entry
+                setTimeout(() => {
+                    initializeCamera();
+                }, 500);
+
             } catch (error) {
                 console.error('Error submitting emotion:', error);
                 alert('Failed to submit. Please try again.');
+                // Restart camera if submission fails
+                initializeCamera();
             }
         });
 
+        // Load submission history
         async function loadHistory() {
             try {
                 const response = await fetch('/api/emotions');
@@ -252,19 +580,20 @@
 
                 historyList.innerHTML = emotions.reverse().map(e => {
                     const date = new Date(e.timestamp);
-                    const timeStr = date.toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
+                    const timeStr = date.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
                         minute: '2-digit'
                     });
                     const dateStr = date.toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric'
                     });
+                    const emotionText = e.dominant_emotion && e.dominant_emotion !== 'unknown' ? ` (${e.dominant_emotion})` : '';
 
                     return `
                         <div class="history-item">
                             <span class="history-emoji">${e.emoji}</span>
-                            <span class="history-time">Submitted at ${timeStr} on ${dateStr}</span>
+                            <span class="history-time">Submitted at ${timeStr} on ${dateStr}${emotionText}</span>
                         </div>
                     `;
                 }).join('');
@@ -273,8 +602,17 @@
             }
         }
 
+        // Initial setup
         loadHistory();
         setInterval(loadHistory, 5000);
+
+        // Start camera when page loads
+        initializeCamera();
+
+        // Clean up when page is unloaded
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+        });
     </script>
 </body>
 </html>
