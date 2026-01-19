@@ -20,7 +20,7 @@ CareConnect enables care recipients to express their emotional state through mul
     - 😡 Angry
     - 😴 Tired
   - **Facial Recognition**: Real-time emotion detection using webcam and computer vision
-  - **Heart Rate Tracking**: Continuous monitoring via Fitbit integration (coming soon)
+  - **Heart Rate Tracking**: Continuous monitoring via Fitbit integration (currently simulated)
 - **Submission History**: View timestamped log of all emotional check-ins with source indication
 - **Privacy Controls**: Opt-in for facial recognition and biometric tracking
 - **Clean Interface**: Minimal, distraction-free design for ease of use
