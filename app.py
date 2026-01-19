@@ -7,6 +7,7 @@ import threading
 
 # Import emotion recognition service
 from face import create_recognize_route
+from physiological_stub import physiological_monitor
 
 app = Flask(__name__)
 
@@ -46,6 +47,7 @@ def handle_emotions():
             'emoji': data['emoji'],
             'dominant_emotion': data.get('dominant_emotion', 'unknown'),
             'emotion_frames': data.get('emotion_frames', []),
+            'heart_rate': data.get('heart_rate', physiological_monitor.get_current_heart_rate()),
             'timestamp': datetime.now().isoformat(),
             'id': emotion_id_counter
         }
@@ -99,6 +101,46 @@ def delete_emotion(emotion_id):
     global emotions
     emotions = [e for e in emotions if e['id'] != emotion_id]
     return jsonify({'success': True})
+
+@app.route('/api/physiological/<int:emotion_id>', methods=['GET'])
+def get_physiological_data(emotion_id):
+    """Get physiological data for a specific emotion entry"""
+    global physiological_data
+    
+    if emotion_id in physiological_data:
+        return jsonify(physiological_data[emotion_id])
+    
+    # If no data exists, generate it
+    trend = physiological_monitor.get_heart_rate_trend(30)
+    stats = physiological_monitor.get_heart_rate_stats(trend)
+    
+    physiological_data[emotion_id] = {
+        'heart_rate': physiological_monitor.get_current_heart_rate(),
+        'trend': trend,
+        'stats': stats
+    }
+    
+    return jsonify(physiological_data[emotion_id])
+
+@app.route('/api/physiological/current', methods=['GET'])
+def get_current_physiological():
+    """Get current physiological readings"""
+    heart_rate = physiological_monitor.get_current_heart_rate()
+    
+    return jsonify({
+        'heart_rate': heart_rate,
+        'timestamp': datetime.now().isoformat(),
+        'status': 'normal' if 60 <= heart_rate <= 100 else 'elevated' if heart_rate > 100 else 'low'
+    })
+
+@app.route('/api/heart_rate', methods=['GET'])
+def get_heart_rate():
+    """
+    Endpoint: GET /api/heart_rate
+    Returns: JSON with current heart rate
+    """
+    heart_rate = physiological_monitor.get_current_heart_rate()
+    return jsonify({'heart_rate': heart_rate})
 
 # Face Recognition Endpoints
 @app.route('/api/face-recognition/start', methods=['POST'])
