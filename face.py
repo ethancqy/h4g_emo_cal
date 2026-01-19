@@ -1,7 +1,7 @@
-"""
-Emotion Recognition Service
-Processes JPEG frames from browser and returns emotion analysis via JSON
-"""
+
+# Emotion Recognition Service
+# Processes JPEG frames from browser and returns emotion analysis via JSON
+
 from flask import jsonify, request
 import numpy as np
 from deepface import DeepFace
@@ -21,10 +21,10 @@ EMOTION_KEYS = ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral
 
 
 def process_frame(frame):
-    """
-    Process a single frame and extract emotion data
-    Returns emotion vector, bounding box, and dominant emotion
-    """
+    
+    # Process a single frame and extract emotion data
+    # Returns emotion vector, bounding box, and dominant emotion
+    
     try:
         # Use DeepFace to analyze emotions
         pred = DeepFace.analyze(frame, actions=['emotion'], enforce_detection=False)
@@ -71,9 +71,9 @@ def process_frame(frame):
 
 
 def apply_temporal_smoothing(emotion_vec):
-    """
-    Apply temporal smoothing using a sliding window (like EEG processing)
-    """
+    
+    # Apply temporal smoothing using a sliding window (like EEG processing)
+    
     emotion_history.append(emotion_vec)
     
     # Calculate mean across window
@@ -93,11 +93,11 @@ def apply_temporal_smoothing(emotion_vec):
 
 # This will be imported and used by Flask app
 def create_recognize_route(app):
-    """
-    Create the /recognize route in the Flask app
-    Expects: POST with JPEG image data (base64 or raw bytes)
-    Returns: JSON with emotion analysis
-    """
+    
+    # Create the /recognize route in the Flask app
+    # Expects: POST with JPEG image data (base64 or raw bytes)
+    # Returns: JSON with emotion analysis
+    
     @app.route("/recognize", methods=["POST"])
     def recognize():
         """
