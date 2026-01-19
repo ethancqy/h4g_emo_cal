@@ -243,19 +243,55 @@
         .emotion-display strong {
             color: #2d3748;
         }
+
+        .language-selector {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .language-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            padding: 8px 16px;
+            margin: 0 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.3s;
+        }
+
+        .language-btn:hover {
+            background: #ebf8ff;
+            border-color: #3182ce;
+        }
+
+        .language-btn.active {
+            background: #3182ce;
+            color: white;
+            border-color: #3182ce;
+        }
     </style>
 </head>
 <body>
+    <div class="language-selector">
+        <button class="language-btn active" data-lang="en">English</button>
+        <button class="language-btn" data-lang="zh">中文</button>
+        <button class="language-btn" data-lang="ta">தமிழ்</button>
+        <button class="language-btn" data-lang="ms">Melayu</button>
+    </div>
     <div class="tabs">
-        <a href="/recipient" class="tab active">Recipient</a>
-        <a href="/caregiver" class="tab">Caregiver</a>
+        <a href="/recipient" class="tab active" data-translate="tab-recipient">Recipient</a>
+        <a href="/caregiver" class="tab" data-translate="tab-caregiver">Caregiver</a>
     </div>
 
     <div class="container">
         <div class="card">
-            <h1>How are you feeling now?</h1>
+            <h1 data-translate="title">How are you feeling now?</h1>
 
-            <div class="camera-status" id="cameraStatus">📷 Camera is on</div>
+            <div class="camera-status" id="cameraStatus" data-translate="camera-on">📷 Camera is on</div>
             <div class="camera-status error" id="cameraError"></div>
 
             <div class="video-container" id="videoContainer">
@@ -265,7 +301,7 @@
             <canvas id="captureCanvas"></canvas>
 
             <div class="emotion-display">
-                <div>Detected emotion from camera: <strong id="emotionLabel">Analyzing...</strong></div>
+                <div><span data-translate="detected-emotion">Detected emotion from camera:</span> <strong id="emotionLabel" data-translate="analyzing">Analyzing...</strong></div>
             </div>
             
             <div class="emoji-selector">
@@ -276,18 +312,100 @@
                 <div class="emoji-btn" data-emoji="😴" title="Tired">😴</div>
             </div>
 
-            <button class="submit-btn" id="submitBtn" disabled>Submit Feeling</button>
+            <button class="submit-btn" id="submitBtn" disabled data-translate="submit-btn">Submit Feeling</button>
 
             <div class="history">
-                <h2>Recent Submissions</h2>
+                <h2 data-translate="recent-submissions">Recent Submissions</h2>
                 <div class="history-list" id="historyList">
-                    <div class="empty-state">No submissions yet. Share how you're feeling!</div>
+                    <div class="empty-state" data-translate="empty-state">No submissions yet. Share how you're feeling!</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Translation dictionary
+        const translations = {
+            en: {
+                'tab-recipient': 'Recipient',
+                'tab-caregiver': 'Caregiver',
+                'title': 'How are you feeling now?',
+                'camera-on': '📷 Camera is on',
+                'detected-emotion': 'Detected emotion from camera:',
+                'analyzing': 'Analyzing...',
+                'submit-btn': 'Submit Feeling',
+                'recent-submissions': 'Recent Submissions',
+                'empty-state': 'No submissions yet. Share how you\'re feeling!'
+            },
+            zh: {
+                'tab-recipient': '接受者',
+                'tab-caregiver': '照顾者',
+                'title': '你现在感觉怎么样？',
+                'camera-on': '📷 摄像头已开启',
+                'detected-emotion': '从摄像头检测到的情绪：',
+                'analyzing': '正在分析...',
+                'submit-btn': '提交感受',
+                'recent-submissions': '最近的提交',
+                'empty-state': '还没有提交记录。分享您的感受！'
+            },
+            ta: {
+                'tab-recipient': 'பெறுநர்',
+                'tab-caregiver': 'பராமரிப்பாளர்',
+                'title': 'நீங்கள் இப்போது எப்படி உணர்கிறீர்கள்?',
+                'camera-on': '📷 கேமரா இயங்குகிறது',
+                'detected-emotion': 'கேமராவிலிருந்து கண்டறியப்பட்ட உணர்ச்சி:',
+                'analyzing': 'பகுப்பாய்வு செய்கிறது...',
+                'submit-btn': 'உணர்வைச் சமர்ப்பிக்கவும்',
+                'recent-submissions': 'சமீபத்திய சமர்ப்பிப்புகள்',
+                'empty-state': 'இன்னும் சமர்ப்பிப்புகள் இல்லை. உங்கள் உணர்வைப் பகிரவும்!'
+            },
+            ms: {
+                'tab-recipient': 'Penerima',
+                'tab-caregiver': 'Penjaga',
+                'title': 'Bagaimana perasaan anda sekarang?',
+                'camera-on': '📷 Kamera dihidupkan',
+                'detected-emotion': 'Emosi dikesan dari kamera:',
+                'analyzing': 'Menganalisis...',
+                'submit-btn': 'Hantar Perasaan',
+                'recent-submissions': 'Penyerahan Terkini',
+                'empty-state': 'Belum ada penyerahan. Kongsi perasaan anda!'
+            }
+        };
+
+        let currentLang = 'en';
+
+        // Function to change language
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('preferredLanguage', lang);
+            
+            // Update all elements with data-translate attribute
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (translations[lang] && translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+
+            // Update language button states
+            document.querySelectorAll('.language-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+        }
+
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+            changeLanguage(savedLang);
+
+            // Add click handlers to language buttons
+            document.querySelectorAll('.language-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    changeLanguage(btn.dataset.lang);
+                });
+            });
+        });
+
         let selectedEmoji = null;
         let emotionFrames = []; // Store emotion data from frames
         let mediaStream = null;
@@ -524,7 +642,18 @@
                     );
                 }
 
-                // Submit emotion with detected emotion data
+                // Get heart rate at submission time
+                let heartRate = 0;
+                try {
+                    const heartRateResponse = await fetch('/api/heart_rate');
+                    const heartRateData = await heartRateResponse.json();
+                    heartRate = heartRateData.heart_rate;
+                } catch (error) {
+                    console.error('Error fetching heart rate:', error);
+                    heartRate = 0;
+                }
+
+                // Submit emotion with detected emotion data and heart rate
                 const response = await fetch('/api/emotions', {
                     method: 'POST',
                     headers: {
@@ -533,7 +662,8 @@
                     body: JSON.stringify({
                         emoji: selectedEmoji,
                         dominant_emotion: averagedEmotion,
-                        emotion_frames: emotionFrames
+                        emotion_frames: emotionFrames,
+                        heart_rate: heartRate
                     })
                 });
 
