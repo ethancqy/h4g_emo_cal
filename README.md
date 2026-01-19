@@ -186,9 +186,7 @@ Use the navigation tabs at the top of any page to switch between Recipient and C
 
 **DELETE** `/api/tasks/<task_id>`
 - Delete a specific task.
-- ```{
-  "success": true
-}```
+- Response: ```{"success": true}```
 
 ### Emotions
 
