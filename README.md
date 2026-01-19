@@ -1,5 +1,7 @@
 # CareConnect - Comprehensive Emotion & Health Tracking System
 
+Problem Statement: Develop a solution that improve relationships between caregiver and the care recipient so that caregivers can provide the care that the care recipients want/need in a mutually respectful, meaningful, and joyful way?
+
 A web-based emotion tracking and caregiving coordination platform that bridges the communication gap between care recipients and their caregivers through intuitive emotion sharing, **facial emotion recognition**, **heart rate monitoring**, and calendar management.
 
 ## Project Overview
@@ -38,12 +40,9 @@ CareConnect enables care recipients to express their emotional state through mul
   - Privacy-first: processing happens locally, no images stored
   - Confidence scoring for accuracy assessment
 
-- **Heart Rate Monitoring** (coming soon):
-  - Continuous Fitbit integration
+- **Heart Rate Monitoring**:
+  - Continuous Fitbit integration (Currently simulated)
   - Resting heart rate tracking
-  - Heart rate variability analysis
-  - Correlation with emotional states
-  - Abnormal pattern alerts
 
 ### Navigation
 - **Dual-Tab System**: Seamlessly switch between Recipient and Caregiver views
@@ -62,18 +61,17 @@ CareConnect enables care recipients to express their emotional state through mul
 
 ## Prerequisites
 
-- Python 3.7 or higher
+- Python 3.7 to 3.11.
 - pip (Python package manager)
 - Webcam (for facial emotion recognition)
-- Fitbit device (optional, for heart rate monitoring)
 
 ## Installation & Setup
 
 ### 1. Clone or Download the Project
 
 ```bash
-git clone <your-repository-url>
-cd careconnect
+git clone https://github.com/ethancqy/h4g_emo_cal
+cd h4g_emo_cal
 ```
 
 ### 2. Create Project Structure
@@ -81,10 +79,10 @@ cd careconnect
 Organize your files as follows:
 
 ```
-careconnect/
+h4g_emo_cal/
 ├── app.py
 ├── face.py
-├── fitbit.py (coming soon)
+├── physiological_stub.py
 ├── requirements.txt
 ├── README.md
 └── templates/
@@ -140,19 +138,15 @@ http://localhost:5000
    - Current emotion and confidence level displayed in real-time
    - Click "Stop Camera" to disable recognition
    
-   **Heart Rate Monitoring** (coming soon):
-   - Authorize Fitbit integration
-   - Continuous background sync
-   - View current heart rate in dashboard
+   **Heart Rate Monitoring**:
+   - Heart-Rate tracking automatically occurs
+   - Captured concurrently with "Submit Feeling" button
    
    All emotions automatically appear on the caregiver's calendar
 
 3. **As a Caregiver**:
    - View the weekly calendar dashboard
-   - See recipient emotions appear as colored gradient blocks:
-     - **Pink**: Manual emoji submissions
-     - **Blue**: Facial recognition detections
-     - **Green**: Heart rate-based insights (coming soon)
+   - See recipient emotions appear as colored gradient blocks
    - Click any empty time slot to add a task
    - Enter task name and start time, then save
    - Click existing tasks/emotions to view details
@@ -195,7 +189,7 @@ Use the navigation tabs at the top of any page to switch between Recipient and C
 - Delete a specific task
 - Response: Success confirmation
 
-### Health Monitoring (coming soon)
+### Health Monitoring
 
 **GET** `/api/heartrate`
 - Returns recent heart rate data
@@ -220,14 +214,12 @@ The facial emotion recognition module uses:
   5. Return dominant emotion with confidence score
   6. Submit to API for caregiver notification
 
-### Heart Rate Integration (`fitbit.py`) - In Development
+### Heart Rate Integration (`physiological_stub.py`) - In Development
 
 The Fitbit integration will:
 - Authenticate with Fitbit OAuth 2.0
 - Poll for heart rate data at configurable intervals
-- Detect anomalies (elevated/decreased HR)
-- Correlate heart rate with emotional states
-- Trigger alerts for concerning patterns
+(Currently simulated)
 
 ## Design Philosophy
 
