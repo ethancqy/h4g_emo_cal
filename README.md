@@ -2,7 +2,7 @@
 
 A web-based emotion tracking and caregiving coordination platform that bridges the communication gap between care recipients and their caregivers through intuitive emotion sharing, **facial emotion recognition**, **heart rate monitoring**, and calendar management.
 
-## Problem Statement: 
+## Problem Statement
 Develop a solution that improve relationships between caregiver and the care recipient so that caregivers can provide the care that the care recipients want/need in a mutually respectful, meaningful, and joyful way?
 
 ## Project Overview
