@@ -11,6 +11,8 @@ CareConnect enables care recipients to express their emotional state through mul
 
 ## Key Features
 
+![Home Page](https://github.com/ethancqy/h4g_emo_cal/blob/main/photos/home.png)
+
 ### For Recipients
 - **Multiple Emotion Input Methods**:
   - **Manual Selection**: Choose from 5 emoji options to express current feelings
@@ -25,6 +27,8 @@ CareConnect enables care recipients to express their emotional state through mul
 - **Privacy Controls**: Opt-in for facial recognition and biometric tracking
 - **Clean Interface**: Minimal, distraction-free design for ease of use
 
+![Recipient Page](https://github.com/ethancqy/h4g_emo_cal/blob/main/photos/recipient.png)
+
 ### For Caregivers
 - **Calendar Dashboard**: Full week view (Monday-Sunday) with 24-hour time slots
 - **Automatic Emotion Blocks**: Recipient emotions appear as 30-minute calendar events
@@ -33,6 +37,8 @@ CareConnect enables care recipients to express their emotional state through mul
 - **Real-time Updates**: Automatic refresh to display new emotions and tasks
 - **Health Insights**: Monitor heart rate patterns alongside emotional states
 - **Edit & Delete**: Modify or remove tasks as needed
+
+![Caregiver Page](https://github.com/ethancqy/h4g_emo_cal/blob/main/photos/caregiver.png)
 
 ### Advanced Monitoring
 - **Facial Emotion Recognition**:
