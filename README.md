@@ -159,46 +159,118 @@ Use the navigation tabs at the top of any page to switch between Recipient and C
 
 ## API Endpoints
 
+### Tasks
+
+**GET** `/api/tasks`
+- Returns all tasks from the caregiver calendar
+- Response: ```[{
+  "id": 0,
+  "title": "Morning Routine",
+  "start": "2026-01-19T08:00:00",
+  "end": "2026-01-19T09:00:00"
+}]```
+
+**POST** `/api/tasks`
+- Create a new task on the caregiver calendar
+- Response: ```{
+  "title": "Task Name",
+  "start": "2026-01-19T08:00:00",
+  "end": "2026-01-19T09:00:00"
+}```
+
+**DELETE** `/api/tasks/<task_id>`
+- Delete a specific task.
+- ```{
+  "success": true
+}```
+
 ### Emotions
 
 **GET** `/api/emotions`
 - Returns all emotion submissions
-- Response: Array of emotion objects with source type
+- Response: ```[{
+  "id": 0,
+  "emoji": "😊",
+  "dominant_emotion": "happy",
+  "emotion_frames": [...],
+  "heart_rate": 72,
+  "timestamp": "2026-01-19T12:34:56.789"
+}]```
 
 **POST** `/api/emotions`
-- Submit a new emotion
-- Body: `{ "emoji": "😊", "source": "manual|facial|heartrate" }`
-- Response: Created emotion object with timestamp
+- Submit a new emotion with facial recognition data and heart rate
+- Response: ```{
+  "emoji": "😊",
+  "dominant_emotion": "happy",
+  "emotion_frames": [...],
+  "heart_rate": 72
+}```
 
-**POST** `/api/emotions/facial`
-- Submit facial recognition result
-- Body: `{ "emotion": "happy", "confidence": 0.95 }`
-- Response: Created emotion object with metadata
+**DELETE** `/api/emotions/<emotion_id>`
+- Delete a specific emotion entry
+- Response: ```{
+  "success": true
+}```
 
-### Tasks
-
-**GET** `/api/tasks`
-- Returns all tasks
-- Response: Array of task objects
-
-**POST** `/api/tasks`
-- Create a new task
-- Body: `{ "title": "Task Name", "start": "ISO datetime", "end": "ISO datetime" }`
-- Response: Created task object
-
-**DELETE** `/api/tasks/<task_id>`
-- Delete a specific task
-- Response: Success confirmation
-
-### Health Monitoring
+### Heart-Rate Monitoring
 
 **GET** `/api/heartrate`
-- Returns recent heart rate data
-- Response: Array of heart rate readings with timestamps
+- Returns current simulated heart rate
+- Response: ```{
+  "heart_rate": 72
+}```
 
-**GET** `/api/heartrate/current`
-- Returns current heart rate
-- Response: Latest heart rate value
+**GET** `api/physiological/current`
+- Returns current physiological readings with status
+- Response: ```{
+  "heart_rate": 72,
+  "timestamp": "2026-01-19T12:34:56.789",
+  "status": "normal"
+}```
+
+**GET** `/api/physiological/<emotion_id>`
+- Get physiological data for a specific emotion entry
+- Response: ```{
+  "heart_rate": 72,
+  "trend": [...],
+  "stats": {...}
+}```
+
+### Face Recognition
+
+**POST** `/recognize`
+- Submit image for facial emotion recognition (created by face.py module)
+- Response: ```{
+  "success": true,
+  "dominant_emotion": "happy",
+  "confidence": 0.95,
+  "emotions": {...},
+  "bbox": {...}
+}```
+
+**POST** '/api/face-recognition/start`
+- Start face recognition monitoring
+- Response: ```{
+  "success": true,
+  "message": "Face recognition started",
+  "timestamp": "2026-01-19T12:34:56.789"
+}```
+
+**POST** `/api/face-recognition/stop`
+- Stop face recognition monitoring
+- Response: ```{
+  "success": true,
+  "message": "Face recognition stopped",
+  "timestamp": "2026-01-19T12:34:56.789"
+}```
+
+**GET** `/api/face-recognition/status`
+- Get face recognition activity log (last 100 entries)
+- Response: ```{
+  "logs": [...],
+  "total": 150,
+  "timestamp": "2026-01-19T12:34:56.789"
+}```
 
 ## Technical Implementation
 
