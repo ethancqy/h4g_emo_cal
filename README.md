@@ -68,7 +68,7 @@ CareConnect enables care recipients to express their emotional state through mul
 
 ## Prerequisites
 
-- Python 3.7 to 3.11.
+- Python 3.11.14.
 - pip (Python package manager)
 - Webcam (for facial emotion recognition)
 
