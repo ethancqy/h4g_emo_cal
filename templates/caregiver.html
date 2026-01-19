@@ -166,6 +166,9 @@
         .event.emotion {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
+            min-width: 45px;
+            padding: 6px 4px;
+            font-size: 0.75rem;
         }
 
         .event.multi-slot {
@@ -284,6 +287,8 @@
             z-index: 100;
             display: none;
         }
+
+
     </style>
 </head>
 <body>
@@ -309,6 +314,8 @@
                 <div class="day-header">Sunday</div>
             </div>
         </div>
+
+
     </div>
 
     <div class="selection-preview" id="selectionPreview"></div>
@@ -367,6 +374,13 @@
         let startSlot = null;
         let selectedSlots = [];
         const hours = Array.from({length: 24}, (_, i) => i);
+
+        // Format a Date for datetime-local input in local time (no timezone shift)
+        function formatLocalInput(date) {
+            const d = date instanceof Date ? date : new Date(date);
+            const pad = (n) => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
 
         function renderCalendar() {
             const calendar = document.getElementById('calendar');
@@ -458,23 +472,31 @@
             if (task) {
                 title.textContent = 'Edit Task';
                 document.getElementById('taskName').value = task.title;
-                document.getElementById('taskStart').value = new Date(task.start).toISOString().slice(0, 16);
-                document.getElementById('taskEnd').value = new Date(task.end).toISOString().slice(0, 16);
+                document.getElementById('taskStart').value = formatLocalInput(task.start);
+                document.getElementById('taskEnd').value = formatLocalInput(task.end);
                 deleteBtn.style.display = 'block';
                 currentTask = task;
             } else {
                 title.textContent = 'Add Task';
                 const now = new Date();
-                const startDate = new Date(now);
-                startDate.setDate(now.getDate() - now.getDay() + day);
+                // Align week start to Monday to match the calendar headers
+                const weekStart = new Date(now);
+                const dow = weekStart.getDay(); // 0=Sun, 1=Mon, ...
+                const offsetToMonday = dow === 0 ? -6 : 1 - dow;
+                weekStart.setDate(weekStart.getDate() + offsetToMonday);
+                weekStart.setHours(0, 0, 0, 0);
+
+                // Add the day offset to get the target date
+                const startDate = new Date(weekStart);
+                startDate.setDate(weekStart.getDate() + day);
                 startDate.setHours(startHour, 0, 0, 0);
-                
+
                 const endDate = new Date(startDate);
                 endDate.setHours(endHour, 0, 0, 0);
 
                 document.getElementById('taskName').value = '';
-                document.getElementById('taskStart').value = startDate.toISOString().slice(0, 16);
-                document.getElementById('taskEnd').value = endDate.toISOString().slice(0, 16);
+                document.getElementById('taskStart').value = formatLocalInput(startDate);
+                document.getElementById('taskEnd').value = formatLocalInput(endDate);
                 deleteBtn.style.display = 'none';
                 currentTask = null;
             }
@@ -500,8 +522,11 @@
                 minute: '2-digit'
             });
 
-            document.getElementById('emotionEmoji').textContent = emotion.title;
-            document.getElementById('emotionText').textContent = emotion.dominant_emotion || 'Unknown';
+            document.getElementById('emotionEmoji').textContent = emotion.emoji || emotion.title;
+            document.getElementById('emotionText').innerHTML = `
+                <strong>Face Emotion:</strong> ${emotion.dominant_emotion || 'Unknown'}<br/>
+                <strong>Heart Rate:</strong> ${emotion.heart_rate || 'N/A'} bpm
+            `;
             document.getElementById('emotionTime').textContent = timeStr;
             
             modal.classList.add('active');
@@ -531,8 +556,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         title: name,
-                        start: startDate.toISOString(),
-                        end: endDate.toISOString()
+                        start: start,
+                        end: end
                     })
                 });
 
@@ -579,6 +604,7 @@
                             type: 'emotion',
                             emoji: e.emoji,
                             dominant_emotion: e.dominant_emotion,
+                            heart_rate: e.heart_rate,
                             timestamp: e.timestamp
                         };
                     })
@@ -597,7 +623,9 @@
             const end = new Date(event.end);
             const now = new Date();
             const weekStart = new Date(now);
-            weekStart.setDate(now.getDate() - now.getDay());
+            const dow = weekStart.getDay(); // 0=Sun, 1=Mon, ...
+            const offsetToMonday = dow === 0 ? -6 : 1 - dow;
+            weekStart.setDate(weekStart.getDate() + offsetToMonday);
             weekStart.setHours(0, 0, 0, 0);
 
             const dayDiff = Math.floor((start - weekStart) / (1000 * 60 * 60 * 24));
@@ -625,14 +653,30 @@
                     eventEl.className = `event ${event.type}`;
                     eventEl.textContent = event.title;
                     
-                    const topPercent = (startMinutes / 60) * 100;
-                    const heightPercent = ((endMinutes - startMinutes) / 60) * 100 || ((60 - startMinutes) / 60) * 100;
-                    
-                    eventEl.style.position = 'absolute';
-                    eventEl.style.top = topPercent + '%';
-                    eventEl.style.height = heightPercent + '%';
-                    eventEl.style.left = '2px';
-                    eventEl.style.right = '2px';
+                    if (event.type === 'emotion') {
+                        // For emotions, use absolute positioning for time-based vertical placement
+                        // and calculate horizontal position based on other emotions in the same slot
+                        const emotionEvents = Array.from(container.querySelectorAll('.event.emotion'));
+                        const emotionIndex = emotionEvents.length;
+                        
+                        const topPercent = (startMinutes / 60) * 100;
+                        const heightPercent = ((endMinutes - startMinutes) / 60) * 100 || ((60 - startMinutes) / 60) * 100;
+                        
+                        eventEl.style.position = 'absolute';
+                        eventEl.style.top = topPercent + '%';
+                        eventEl.style.height = heightPercent + '%';
+                        eventEl.style.left = (emotionIndex * 50) + 'px';
+                        eventEl.style.width = '45px';
+                    } else {
+                        const topPercent = (startMinutes / 60) * 100;
+                        const heightPercent = ((endMinutes - startMinutes) / 60) * 100 || ((60 - startMinutes) / 60) * 100;
+                        
+                        eventEl.style.position = 'absolute';
+                        eventEl.style.top = topPercent + '%';
+                        eventEl.style.height = heightPercent + '%';
+                        eventEl.style.left = '2px';
+                        eventEl.style.right = '2px';
+                    }
                     
                     if (event.type === 'task') {
                         eventEl.onclick = (e) => {
@@ -666,16 +710,32 @@
                             eventEl.textContent = event.title;
                         }
                         
-                        const topPercent = (h === startHour) ? (startMinutes / 60) * 100 : 0;
-                        const heightPercent = (h === endHour - 1 && endMinutes > 0) 
-                            ? (endMinutes / 60) * 100 
-                            : (h === startHour) ? ((60 - startMinutes) / 60) * 100 : 100;
-                        
-                        eventEl.style.position = 'absolute';
-                        eventEl.style.top = topPercent + '%';
-                        eventEl.style.height = heightPercent + '%';
-                        eventEl.style.left = '2px';
-                        eventEl.style.right = '2px';
+                        if (event.type === 'emotion') {
+                            const emotionEvents = Array.from(container.querySelectorAll('.event.emotion'));
+                            const emotionIndex = emotionEvents.length;
+                            
+                            const topPercent = (h === startHour) ? (startMinutes / 60) * 100 : 0;
+                            const heightPercent = (h === endHour - 1 && endMinutes > 0) 
+                                ? (endMinutes / 60) * 100 
+                                : (h === startHour) ? ((60 - startMinutes) / 60) * 100 : 100;
+                            
+                            eventEl.style.position = 'absolute';
+                            eventEl.style.top = topPercent + '%';
+                            eventEl.style.height = heightPercent + '%';
+                            eventEl.style.left = (emotionIndex * 50) + 'px';
+                            eventEl.style.width = '45px';
+                        } else {
+                            const topPercent = (h === startHour) ? (startMinutes / 60) * 100 : 0;
+                            const heightPercent = (h === endHour - 1 && endMinutes > 0) 
+                                ? (endMinutes / 60) * 100 
+                                : (h === startHour) ? ((60 - startMinutes) / 60) * 100 : 100;
+                            
+                            eventEl.style.position = 'absolute';
+                            eventEl.style.top = topPercent + '%';
+                            eventEl.style.height = heightPercent + '%';
+                            eventEl.style.left = '2px';
+                            eventEl.style.right = '2px';
+                        }
                         
                         if (event.type === 'task') {
                             eventEl.onclick = (e) => {
@@ -789,43 +849,8 @@
                 video.srcObject.getTracks().forEach(track => track.stop());
                 video.srcObject = null;
             }
-
             isCapturing = false;
-            console.log('Emotion monitoring stopped');
         }
-
-        function updateEmotionDisplay(emotionData) {
-            // This can be customized to update your UI
-            // For example, display emotion in a status element
-            const status = document.querySelector('.emotion-status') || document.createElement('div');
-            if (!document.querySelector('.emotion-status')) {
-                status.className = 'emotion-status';
-                status.style.cssText = 'position: fixed; top: 20px; right: 20px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000;';
-                document.body.appendChild(status);
-            }
-
-            status.innerHTML = `
-                <strong>Current Emotion:</strong> ${emotionData.dominant_emotion}<br/>
-                <strong>Confidence:</strong> ${(emotionData.confidence * 100).toFixed(0)}%
-            `;
-        }
-
-        // Optional: Add button to UI to start/stop monitoring
-        // Uncomment to add to page
-        // document.addEventListener('DOMContentLoaded', () => {
-        //     const btn = document.createElement('button');
-        //     btn.textContent = 'Start Emotion Monitoring';
-        //     btn.onclick = () => {
-        //         if (isCapturing) {
-        //             stopEmotionMonitoring();
-        //             btn.textContent = 'Start Emotion Monitoring';
-        //         } else {
-        //             startEmotionMonitoring();
-        //             btn.textContent = 'Stop Emotion Monitoring';
-        //         }
-        //     };
-        //     document.body.appendChild(btn);
-        // });
     </script>
 </body>
 </html>
