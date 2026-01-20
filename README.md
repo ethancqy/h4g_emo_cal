@@ -139,11 +139,9 @@ http://localhost:5000
    - View your submission appear in the history below
    
    **Facial Emotion Recognition**:
-   - Click "Enable Camera" to start facial recognition
    - Allow browser camera permissions when prompted
    - The system will automatically detect and log your emotions
    - Current emotion and confidence level displayed in real-time
-   - Click "Stop Camera" to disable recognition
    
    **Heart Rate Monitoring**:
    - Heart-Rate tracking automatically occurs
